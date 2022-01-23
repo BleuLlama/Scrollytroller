@@ -50,4 +50,33 @@ class LLButtonKeyboard : public LLButton {
     int Poll(); // poll the button pin and generate key presses where appropriate
 };
 
+
+////////////////////////////////////////////////
+// LLButtonJoystick
+// 
+//  Subclass of the above, generates X/Y axis joystick controller events
+
+class LLButtonJoystick : public LLButton {
+  private:
+    int xMultiplier;
+    int yMultiplier;
+  public:
+    LLButtonJoystick( int pin, int xMul, int yMul );
+    int Poll();
+};
+
+
+////////////////////////////////////////////////
+// LLButtonJoyButton
+// 
+//  Subclass of the above, generates joystick controller button events
+
+class LLButtonJoyButton : public LLButton {
+  private:
+    int joybutton;
+  public:
+    LLButtonJoyButton( int pin, int joybutton );
+    int Poll();
+};
+
 #endif

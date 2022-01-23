@@ -1,3 +1,5 @@
+
+
 /*
  * Scrollytroller
  *    Scott Lawrence yorgle@gmail.com
@@ -16,6 +18,8 @@
 #include <Keyboard.h> // for keyboard output
 #include <Mouse.h>    // for scroll wheel
 #include <Encoder.h>  // this library https://www.pjrc.com/teensy/td_libs_Encoder.html
+#include <Joystick.h> // https://github.com/MHeironimus/ArduinoJoystickLibrary
+
 
 #include "LLButton.h" // my classes for handling button press and keyboard sending
 
@@ -31,7 +35,7 @@
     LEFT  RIGHT      C
        DOWN        E   D
 
-  current mapping:
+  keyboard+mouse mode mapping:
    CRANK - Mouse Scroll wheel
    UP/DOWN/LEFT/RIGHT - keyboard cursor keys
    A - keyboard 's' key
@@ -39,8 +43,19 @@
    C - (not used)
    D - Command-S (save)
    E - Command-B (toggle between Player and Editor)
+   
+  joystick mode mapping:
+   D-Pad - x, y axes (axis 0, axis 1)
+   Crank - z axis (0..360)
+   A - Button 0
+   B - Button 1
+   C - Button 2
+   D - Button 3
+   
    GRN - green LED
    RED - red LED
+
+   press the crank button and then A to switch to keyboard mode, or B to joystick mode
 
    
    SS Micro / Arduino Leonardo-clone (32u4) pinout
@@ -85,6 +100,11 @@
 // settings
 #undef kInvertEncoder
 
+#define kTicksPerRevolution   (20 * 4)
+
+int outputModeJoystick = 0;
+int outputInhibit = 0;
+
 
 ////////////////////////////////////////////////
 // objects
@@ -101,6 +121,20 @@ Encoder myEnc(kRotaryA, kRotaryB);
 LLButton rotButton( kRotaryButton );
 LLButtonKeyboard *controls[ kControlCount ];
 
+LLButtonJoystick * jcontrols[ 4 ];
+LLButtonJoyButton * jbcontrols[ 4 ];
+
+
+// joystick 
+Joystick_ Joystick(
+    JOYSTICK_DEFAULT_REPORT_ID,
+    JOYSTICK_TYPE_JOYSTICK, //JOYSTICK_TYPE_MULTI_AXIS,
+  4, 0,                  // Button Count, Hat Switch Count
+  true, true, true,     // X and Y, and Z Axis
+  false, false, false,    //  Rx, Ry, or Rz
+  false, false,           // rudder or throttle
+  false, false, false);   // accelerator, brake, or steering
+
 
 ////////////////////////////////////////////////
 // Arduino core functions
@@ -108,13 +142,17 @@ LLButtonKeyboard *controls[ kControlCount ];
 // setup
 //  standard setup() call.  get everything going!
 void setup() {
-  //Serial.begin( 115200 );
-  //while( !Serial );
-  //Serial.println( "Ready." );
+  /*
+  Serial.begin( 115200 );
+  while( !Serial );
+  Serial.println( "Ready." );
+  */
   
   Mouse.begin();
   Keyboard.begin();
-  
+
+  setup_Joystick();
+ 
   setup_Buttons();
   setup_LEDs();
 
@@ -124,9 +162,25 @@ void setup() {
 //  poll all of our inputs, generating appropriate events and stuff
 void loop() {
   poll_Encoder();
-  poll_Buttons();
+  if( !outputInhibit ) {
+    poll_Buttons();
+  }
 }
 
+////////////////////////////////////////////////
+// Joystick
+void setup_Joystick()
+{
+  Joystick.begin();
+  Joystick.setXAxisRange(-1, 1);
+  Joystick.setYAxisRange(-1, 1);
+  Joystick.setZAxisRange(0, 360);
+
+  Joystick.setButton(0, 0); // A 
+  Joystick.setButton(1, 0); // B
+  Joystick.setButton(2, 0); // D
+  Joystick.setButton(3, 0); // E
+}
 
 ////////////////////////////////////////////////
 // Buttons
@@ -136,6 +190,18 @@ void loop() {
 void setup_Buttons()
 {  
   // these map to the Pulp player controller
+  // joystick controls
+  jcontrols[0] = new LLButtonJoystick( kPadUp, 0, 1 );
+  jcontrols[1] = new LLButtonJoystick( kPadDown, 0, -1 );
+  jcontrols[2] = new LLButtonJoystick( kPadLeft, -1, 0 );
+  jcontrols[3] = new LLButtonJoystick( kPadRight, 1, 0 );
+  
+  jbcontrols[0] = new LLButtonJoyButton( kButtonA, 0 );
+  jbcontrols[1] = new LLButtonJoyButton( kButtonB, 1 );
+  jbcontrols[2] = new LLButtonJoyButton( kButtonD, 2 );
+  jbcontrols[3] = new LLButtonJoyButton( kButtonE, 3 );
+
+  // kyb/mouse controls
   controls[0] = new LLButtonKeyboard( kPadUp, KEY_UP_ARROW );
   controls[1] = new LLButtonKeyboard( kPadDown, KEY_DOWN_ARROW );
   controls[2] = new LLButtonKeyboard( kPadLeft, KEY_LEFT_ARROW );
@@ -152,8 +218,15 @@ void setup_Buttons()
 //
 void poll_Buttons()
 {
-  for( int i = 0 ; i < kControlCount ; i++ ) {
-    controls[i]->Poll();
+  if( outputModeJoystick ) {
+    for( int j = 0 ; j < 4 ; j++ ) {
+      jcontrols[ j ]->Poll();
+      jbcontrols[ j ]->Poll();
+    }
+  } else { 
+    for( int i = 0 ; i < kControlCount ; i++ ) {
+      controls[i]->Poll();
+    }
   }
 }
 
@@ -218,32 +291,65 @@ void poll_Encoder()
   switch( bEvent ) {
     case kEventPressed:
       LED_Error(); // indicate that something is different.
+      outputInhibit = 1;
+      
+      // setup the LEDs for showing mode
+      // red indicates we're inhibiting output
+      digitalWrite( kLED_Red, HIGH );
+      // green indicates keyboard or joystick
+      digitalWrite( kLED_Green, outputModeJoystick );
       break;
       
     case kEventPressing:
       // eat rotation deltas
       myEnc.write( 0 );
       oldPosition = 0;
+      outputInhibit = 1;
+      // check for Button A/B press during this time
+      
+      if( controls[4]->Poll() == kEventPressed ) { // B button
+        outputModeJoystick = 0;
+      }
+      if( controls[5]->Poll() == kEventPressed ) { // A button
+        outputModeJoystick = 1;
+      }
+      digitalWrite( kLED_Green, outputModeJoystick );
+      
       break;
       
     case kEventReleased:
+      outputInhibit = 0;
       LED_Ready(); // back to normal!
       break;
       
     default: // or idle
       // user isn't pressing, send them events through!
+      outputInhibit = 0;
       
       // checks for the encoder itself
       newPosition = myEnc.read();
-    
-      // since each "click" of the encoder goes through all four complete phases on our 
-      // encoder... 00 -> 01 -> 11 -> 10 -> 00  (or the other way around), we want to only
-      // respond for each "click" so divide the pulses by 4.
-      
-      if (newPosition/4 != oldPosition/4) {
-        oldPosition = newPosition;
-        Mouse.move( 0, 0, newPosition/4 );
-        myEnc.write( 0 ); // reset it so we're doing a delta
-      }   
+
+      if( outputModeJoystick ) {
+        if( newPosition < 0 ) {
+          newPosition += kTicksPerRevolution;
+          
+          myEnc.write( newPosition );
+        }
+        
+        Joystick.setZAxis( ( newPosition % kTicksPerRevolution ) * 360.0 / kTicksPerRevolution );
+        
+      } else {
+          
+        // since each "click" of the encoder goes through all four complete phases on our 
+        // encoder... 00 -> 01 -> 11 -> 10 -> 00  (or the other way around), we want to only
+        // respond for each "click" so divide the pulses by 4.
+        
+        if (newPosition/4 != oldPosition/4) {
+          oldPosition = newPosition;
+          Mouse.move( 0, 0, newPosition/4 );
+          myEnc.write( 0 ); // reset it so we're doing a delta
+        }   
+      }
+      break;
   }
 }

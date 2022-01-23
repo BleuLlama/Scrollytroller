@@ -102,3 +102,72 @@ int LLButtonKeyboard::Poll()
   
   return evt;
 }
+
+
+
+////////////////////////////////////////////////
+// LLButtonJoystick
+// 
+//  Subclass of the above, generates X/Y axis joystick controller events
+
+// constructor with the key passed in (no modifier)
+LLButtonJoystick::LLButtonJoystick( int pin, int xMul, int yMul  )
+  : LLButton( pin )
+  , xMultiplier( xMul )
+  , yMultiplier( yMul )
+{
+}
+
+int LLButtonJoystick::Poll()
+{
+  int evt = LLButton::Poll();
+
+  if( evt == kEventPressed ) {
+    // set the value on the appropriate axis
+    if( this->xMultiplier != 0 ) {
+      Joystick.setXAxis( this->xMultiplier );
+    } else {
+      Joystick.setYAxis( this->yMultiplier );
+    }
+    
+  }
+  if( evt == kEventReleased ) {
+    // center the appropriate axis
+    if( this->xMultiplier != 0 ) {
+      Joystick.setXAxis( 0 );
+    } else {
+      Joystick.setYAxis( 0 );
+    }
+    
+  }
+  
+  return evt;
+}
+
+
+////////////////////////////////////////////////
+// LLButtonJoyButton
+// 
+//  Subclass of the above, generates joystick controller button events
+
+
+LLButtonJoyButton::LLButtonJoyButton( int pin, int _joybutton )
+: LLButton( pin )
+  , joybutton( _joybutton )
+{
+}
+
+int LLButtonJoyButton::Poll()
+{
+  int evt = LLButton::Poll();
+  
+  if( evt == kEventPressed ) {
+    // set the value on the appropriate axis
+    Joystick.setButton( this->joybutton, 1 );
+  }
+  if( evt == kEventReleased ) {
+    Joystick.setButton( this->joybutton, 0 );
+  }
+
+  return evt;
+}
