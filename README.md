@@ -6,6 +6,19 @@ A crank-based controller for use with PlayDate's Pulp web player development too
 This is a USB controller that lets you try out your PlayDate Pulp games with a more accurate 
 user interface, compared with using your keyboard.
 
+The controller generates keyboard presses and mouse scroll wheel events so that the 
+Pulp web player will interact with it properly.  (I added more buttons and the LEDs because I 
+had the space and thought they might be useful.)
+
+The current configuration I'm using is:
+
+- Crank generates mouse scroll wheel events
+- D-Pad generates keyboard arrow key press events
+- A and B buttons - generate keyboard 'a' and 's' events
+- C button (in the middle) - not used 
+- D and E bottom buttons - generate 'cmd'-'s' to save and 'cmd'-'b' to toggle between the player and the editor
+- Red and Green LEDs - status indication.
+
 The code is written with the Arduino tools, and requires the Encoder library (url is in
 the source code) to handle all of the interrupt-driven rotary encoder stuff.
 
