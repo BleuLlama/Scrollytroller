@@ -2,6 +2,7 @@
 *swp
 junk*
 *junk
+build/
 
 # Prerequisites
 *.d

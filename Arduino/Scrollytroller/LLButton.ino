@@ -73,6 +73,7 @@ int LLButton::Poll()
 LLButtonKeyboard::LLButtonKeyboard( int pin, int pkey )
   : LLButton( pin )
   , key( pkey )
+  , key2( 0 )
   , modifier( -1 ) // indicate "no modifier"
 {
 }
@@ -81,6 +82,16 @@ LLButtonKeyboard::LLButtonKeyboard( int pin, int pkey )
 LLButtonKeyboard::LLButtonKeyboard( int pin, int pkey, int pmodifier )
   : LLButton( pin )
   , key( pkey )
+  , key2( 0 )
+  , modifier( pmodifier )
+{
+}
+
+// constructor with the key and modifier passed in
+LLButtonKeyboard::LLButtonKeyboard( int pin, int pkey, int pmodifier, int pkey2 )
+  : LLButton( pin )
+  , key( pkey )
+  , key2( pkey2 )
   , modifier( pmodifier )
 {
 }
@@ -98,6 +109,13 @@ int LLButtonKeyboard::Poll()
   if( evt == kEventReleased ) {
     if( this->modifier > 0 ) Keyboard.release( this->modifier );
     Keyboard.release( this->key ); 
+
+    if( this->key2 != 0 ) {
+      delay( 3000 );
+      Keyboard.press( this->key2 );
+      delay( 250 );
+      Keyboard.release( this->key2 );
+    }
   }
   
   return evt;

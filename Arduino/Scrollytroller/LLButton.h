@@ -43,10 +43,12 @@ public:
 class LLButtonKeyboard : public LLButton {
   private:
     int key;      // keyboard key to send (ascii 0x00..0x7f)
+    int key2;      // keyboard key to send (ascii 0x00..0x7f)
     int modifier; // modifier to press with it (ie "command", "alt" etc)
   public:
     LLButtonKeyboard( int pin, int key );               // constructor with the key passed in (no modifier)
     LLButtonKeyboard( int pin, int key, int modifier ); // constructor with the key and modifier passed in
+    LLButtonKeyboard( int pin, int key, int modifier, int key2 ); // constructor with the key and modifier passed in, then send a second key
     int Poll(); // poll the button pin and generate key presses where appropriate
 };
 

@@ -1,5 +1,3 @@
-
-
 /*
  * Scrollytroller
  *    Scott Lawrence yorgle@gmail.com
@@ -10,7 +8,10 @@
  * buttons will send key presses
  */
 
-/* v1.00 - 2022-01-22 - Initial version
+/* 
+  v1.02 - 2022-01-24 - Added second keypress with 3s delay (for cmd-b, f)
+  v1.01 - 2022-01-23 - Two modes - Joystick, KB+Mouse
+  v1.00 - 2022-01-22 - Initial version - KB+Mouse
  */
 
 ////////////////////////////////////////////////
@@ -210,7 +211,7 @@ void setup_Buttons()
   controls[5] = new LLButtonKeyboard( kButtonB, 'a' );
 
   controls[6] = new LLButtonKeyboard( kButtonD, 's', KEY_LEFT_GUI ); // save
-  controls[7] = new LLButtonKeyboard( kButtonE, 'b', KEY_LEFT_GUI ); // toggle between player and editor
+  controls[7] = new LLButtonKeyboard( kButtonE, 'b', KEY_LEFT_GUI, 'f' ); // toggle between player and editor
 }
 
 //  poll_Buttons
